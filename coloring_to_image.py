@@ -2,23 +2,26 @@ from PIL import Image
 import numpy as np
 import colorsys
 import math, cmath
+import time
 
 MOD_BRIGHTNESS_BY_POWERS_OF_TWO = True
 
-height = 500
-width = 500
+height = 900
+width = 1600
 
-xMin = -5
-xMax = 5
-yMin = -5
-yMax = 5
+xMin = -10
+xMax = 10
+yMin = -17.7777777
+yMax = 17.7777777
 
 def func_to_test(z: complex):
-    # return z
+    # z = z * complex(0,1) # Rotate 90°
+    return z
     # return (3*z+5)/(-4*z+1)
+    # return (3*z+1)/(3*z-1)
     # return z ** 2
     # return 0 if z == 0 else 1/z
-    return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
+    # return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
     # return 0 if z == 0 else cmath.log(z)
     # return cmath.cosh(z) + cmath.tanh(z)
 
@@ -26,13 +29,19 @@ def write_to_file(filename: str):
     angles = np.empty((height, width), dtype=np.float32)
     magnitudes = np.empty((height, width), dtype=np.float32)
 
+    math_total_time = 0
+
     # For each pixel,
     for x in range(height):
         for y in range(width):
             xVal = xMin + (x/height)*(xMax-xMin)
             yVal = yMin + (y/width)*(yMax-yMin)
 
+            start = time.time()
             function_output = func_to_test(complex(xVal, yVal))
+            end = time.time()
+
+            math_total_time += end - start
 
             # Convert to polar
             r, theta = cmath.polar(function_output)
@@ -45,7 +54,11 @@ def write_to_file(filename: str):
 
     maxMagnitude = np.max(magnitudes)
 
+    print(f"Computation complete, total function time: {math_total_time}s")
+
     imageData = np.empty((height, width, 3), dtype=np.uint8)
+
+    rendering_start = time.time()
 
     for x in range(height):
         for y in range(width):
@@ -63,22 +76,28 @@ def write_to_file(filename: str):
 
             saturation = 1
 
-            # TODO: normalize input so it's in the right domain
-            # https://docs.python.org/3/library/colorsys.html
-            # Ex: atan is -pi/2 to pi/2, we change it to 0 to pi, but needs to be 0 to 1?
+            imageData[x][y][0] = int(hue * 255)
+            imageData[x][y][1] = int(saturation * 255) # always 255
+            imageData[x][y][2] = int(lightness * 255)
 
-            # might need to be hls_to_rgb?
-            r,g,b = colorsys.hsv_to_rgb(hue, saturation, lightness)
-
-            imageData[x][y][0] = int(r * 255)
-            imageData[x][y][1] = int(g * 255)
-            imageData[x][y][2] = int(b * 255)
+    rendering_end = time.time()
+    print(f"Rendered in {rendering_end - rendering_start}s")
 
     img_arr = np.array(imageData, dtype=np.uint8)
-    new_img = Image.fromarray(img_arr)
+    new_img = Image.fromarray(img_arr, mode="HSV")
+
+    convert_start = time.time()
+    new_img = new_img.convert("RGB")
+    convert_end = time.time()
+    print(f"HSV to RGB conversion in {convert_end - convert_start}s")
+
+
     new_img.save(filename)
     print(f"Saved as {filename}")
 
 if __name__ == '__main__':
     fname = input("Input filename:\n>>> ")
+    if "." not in fname:
+        fname += ".png"
+
     write_to_file(fname)
