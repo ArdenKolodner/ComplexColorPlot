@@ -5,29 +5,33 @@ import math, cmath
 import time
 
 MOD_BRIGHTNESS_BY_POWERS_OF_TWO = True
+CHECKERBOARD = False
+CHECKERBOARD_WIDTH = 0.1
 
 height = 900
 width = 1600
 
-xMin = -10
-xMax = 10
-yMin = -17.7777777
-yMax = 17.7777777
+xMin = -1
+xMax = 1
+yMin = -1.7777777
+yMax = 1.7777777
 
 def func_to_test(z: complex):
     # z = z * complex(0,1) # Rotate 90°
-    return z
+    # return z
     # return (3*z+5)/(-4*z+1)
     # return (3*z+1)/(3*z-1)
     # return z ** 2
     # return 0 if z == 0 else 1/z
-    # return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
+    return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
     # return 0 if z == 0 else cmath.log(z)
     # return cmath.cosh(z) + cmath.tanh(z)
 
 def write_to_file(filename: str):
     angles = np.empty((height, width), dtype=np.float32)
     magnitudes = np.empty((height, width), dtype=np.float32)
+
+    if CHECKERBOARD: gridLines = np.zeros((height, width), dtype=np.bool_)
 
     math_total_time = 0
 
@@ -42,6 +46,9 @@ def write_to_file(filename: str):
             end = time.time()
 
             math_total_time += end - start
+
+            if CHECKERBOARD and (function_output.real % (2*CHECKERBOARD_WIDTH) < CHECKERBOARD_WIDTH) != (function_output.imag % (2*CHECKERBOARD_WIDTH) < CHECKERBOARD_WIDTH):
+                gridLines[x][y] = True
 
             # Convert to polar
             r, theta = cmath.polar(function_output)
@@ -73,6 +80,9 @@ def write_to_file(filename: str):
 
                 # We don't actually want brightness to go from 0 to 1, because it's ugly, so we have the fraction determine 0.7 of the color, with 0.3 always on
                 lightness = (frac * 0.7) + 0.3
+
+            if CHECKERBOARD and gridLines[x][y]:
+                lightness *= 0.7
 
             saturation = 1
 
