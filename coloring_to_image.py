@@ -8,30 +8,30 @@ MOD_BRIGHTNESS_BY_POWERS_OF_TWO = True
 CHECKERBOARD = False
 CHECKERBOARD_WIDTH = 0.1
 
-height = 900
-width = 1600
+height = 300
+width = 300
 
 xMin = -1
 xMax = 1
-yMin = -1.7777777
-yMax = 1.7777777
+yMin = -1
+yMax = 1
 
 def func_to_test(z: complex):
     # z = z * complex(0,1) # Rotate 90°
-    # return z
+    return z
     # return (3*z+5)/(-4*z+1)
     # return (3*z+1)/(3*z-1)
     # return z ** 2
     # return 0 if z == 0 else 1/z
-    return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
+    # return cmath.cos(complex(z.imag, z.real)) + cmath.sin(z)
     # return 0 if z == 0 else cmath.log(z)
     # return cmath.cosh(z) + cmath.tanh(z)
 
 def write_to_file(filename: str):
-    angles = np.empty((height, width), dtype=np.float32)
-    magnitudes = np.empty((height, width), dtype=np.float32)
+    angles = np.empty((width, height), dtype=np.float32)
+    magnitudes = np.empty((width, height), dtype=np.float32)
 
-    if CHECKERBOARD: gridLines = np.zeros((height, width), dtype=np.bool_)
+    if CHECKERBOARD: gridLines = np.zeros((width, height), dtype=np.bool_)
 
     math_total_time = 0
 
@@ -63,12 +63,13 @@ def write_to_file(filename: str):
 
     print(f"Computation complete, total function time: {math_total_time}s")
 
+    # Note that PIL images have shape transposed! (height,width) rather than (width,height), as you would expect from an x,y array
     imageData = np.empty((height, width, 3), dtype=np.uint8)
 
     rendering_start = time.time()
 
-    for x in range(height):
-        for y in range(width):
+    for x in range(width):
+        for y in range(height):
             hue = angles[x][y] / (2*math.pi)
             lightness = magnitudes[x][y] / maxMagnitude
 
@@ -86,9 +87,10 @@ def write_to_file(filename: str):
 
             saturation = 1
 
-            imageData[x][y][0] = int(hue * 255)
-            imageData[x][y][1] = int(saturation * 255) # always 255
-            imageData[x][y][2] = int(lightness * 255)
+            # Note that PIL images have shape transposed! (height,width) rather than (width,height)
+            imageData[y][x][0] = int(hue * 255)
+            imageData[y][x][1] = int(saturation * 255) # always 255
+            imageData[y][x][2] = int(lightness * 255)
 
     rendering_end = time.time()
     print(f"Rendered in {rendering_end - rendering_start}s")
