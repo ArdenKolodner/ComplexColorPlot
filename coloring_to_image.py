@@ -36,10 +36,10 @@ def write_to_file(filename: str):
     math_total_time = 0
 
     # For each pixel,
-    for x in range(height):
-        for y in range(width):
-            xVal = xMin + (x/height)*(xMax-xMin)
-            yVal = yMin + (y/width)*(yMax-yMin)
+    for x in range(width):
+        for y in range(height):
+            xVal = xMin + (x/width)*(xMax-xMin)
+            yVal = yMin + (y/height)*(yMax-yMin)
 
             start = time.time()
             function_output = func_to_test(complex(xVal, yVal))
