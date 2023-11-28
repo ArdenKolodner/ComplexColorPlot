@@ -10,8 +10,6 @@ DEFAULT_WINDOW = (-1, 1, -1, 1)
 
 argParse = argparse.ArgumentParser()
 
-argParse.add_argument("-dim", "--dimensions", type=int, nargs=2, default=(400, 400), help="Set the image dimensions. Default=%(default)s")
-
 argParse.add_argument("-xMin", "--xMin", type=float, default=-1, help="Set one viewing window dimension. Default=%(default)s")
 argParse.add_argument("-xMax", "--xMax", type=float, default=1, help="Set one viewing window dimension. Default=%(default)s")
 argParse.add_argument("-yMin", "--yMin", type=float, default=-1, help="Set one viewing window dimension. Default=%(default)s")
@@ -31,25 +29,19 @@ function.add_argument("-f8", "--func:test8", dest='function', action='store_cons
 
 function.add_argument("-fs", "--func:specify", dest='function', action='store_const', const='SPECIFY', default="SPECIFY", help="You will be prompted to enter a function. The variable is 'z'. Select NumPy functions (sin(), log(), etc) are available with no namespace required.")
 
-checkerboard = argParse.add_mutually_exclusive_group()
-checkerboard.add_argument("-c", "--checkerboard-width", type=float, default=0.1, help="Set the width of the checkerboard pattern. Default=%(default)s")
-checkerboard.add_argument("-x", "--checkerboard-off", action='store_true', default=False, help="Turn off the checkerboard pattern.")
-
 brightness = argParse.add_mutually_exclusive_group()
 brightness.add_argument("-b", "--brightness-log-modulus", action='store_true', dest='mod_brightness', default=True, help="Use the base-2 log of the complex number as the brightness. On by default.")
 brightness.add_argument("-s", "--simple", action='store_false', default=False, dest='mod_brightness', help="Use the modulus of the complex number, as a fraction of the maximum modulus in the viewing window, as the brightness. Off by default.")
 
+argParse.add_argument("-i", "--input", type=str, default="", help="Name of input file.", required=True)
 argParse.add_argument("-o", "--output", type=str, default="", help="Name of output file.")
 argParse.add_argument("-p", "--preview", action='store_true', help="Show the image in a window.")
 
 args = argParse.parse_args()
 
 MOD_BRIGHTNESS_BY_POWERS_OF_TWO = args.mod_brightness
-CHECKERBOARD = not args.checkerboard_off
-CHECKERBOARD_WIDTH = args.checkerboard_width
-
-height = args.dimensions[1]
-width = args.dimensions[0]
+CHECKERBOARD = False # Not really a good effect to apply to an image
+CHECKERBOARD_WIDTH = 0
 
 if args.window: xMin, xMax, yMin, yMax = args.window
 else:
@@ -87,7 +79,9 @@ def make_func(func: str):
             f = input("Enter function:\n>>> ")
             return lambda z: eval(f)
 
-def create_img(func_to_test) -> Image:
+def filter_img(img: Image, func_to_test) -> Image:
+    height, width = img.height, img.width
+
     math_start = time.time()
 
     x_in = np.linspace(xMin, xMax, num=width)
@@ -112,7 +106,13 @@ def create_img(func_to_test) -> Image:
 
     rendering_start = time.time()
 
-    hues = (255 * angles / (2*PI)).astype(np.uint8)
+    img_hues, img_sats, img_lights = img.convert('HSV').split()
+    img_hues, img_sats, img_lights = np.array(img_hues), np.array(img_sats), np.array(img_lights)
+    img_hues = img_hues.astype(np.float32) / 255
+    img_lights = img_lights.astype(np.float32) / 255
+
+    hues = (255 * (angles / (2*PI))).astype(np.uint8)
+
     lightnesses = magnitudes
 
     if MOD_BRIGHTNESS_BY_POWERS_OF_TWO:
@@ -135,9 +135,11 @@ def create_img(func_to_test) -> Image:
 
     if CHECKERBOARD: lightnesses = np.where(gridDarkened, lightnesses * 0.7, lightnesses)
 
-    lightnesses = (lightnesses * 255).astype(np.uint8)
+    lightnesses = (img_lights * 255).astype(np.uint8)
 
     saturations = np.full((height, width), 255, dtype=np.uint8)
+    # if args.apply_lightness: saturations = img_sats
+    # else: saturations = np.full((height, width), 255, dtype=np.uint8)
 
     # Note that PIL images have shape transposed! (height,width) rather than (width,height), as you would expect from an x,y array
     imageData = np.stack((hues, saturations, lightnesses), axis=-1)
@@ -160,7 +162,7 @@ def create_img(func_to_test) -> Image:
 if __name__ == '__main__':
     func_to_test = make_func(args.function)
 
-    img = create_img(func_to_test)
+    img = filter_img(Image.open(args.input), func_to_test)
 
     if args.preview:
         img.show()
