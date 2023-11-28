@@ -37,6 +37,10 @@ argParse.add_argument("-i", "--input", type=str, default="", help="Name of input
 argParse.add_argument("-o", "--output", type=str, default="", help="Name of output file.")
 argParse.add_argument("-p", "--preview", action='store_true', help="Show the image in a window.")
 
+argParse.add_argument("-n", "--normalize", action='store_const', dest='normalize', const='normalize', help="Apply the transformation 1-2|v-0.5|, where v is the HSV value of the pixel.", default=False)
+argParse.add_argument("-nr", "--normalize-reverse", action='store_const', dest='normalize', const='reverse', help="Apply the transformation 1-2|v-0.5|, where v is the HSV value of the pixel.", default=False)
+argParse.add_argument("-nn", "--no-normalize", action='store_const', dest='normalize', const='off', help="No transformation.")
+
 args = argParse.parse_args()
 
 MOD_BRIGHTNESS_BY_POWERS_OF_TWO = args.mod_brightness
@@ -114,6 +118,9 @@ def filter_img(img: Image, func_to_test) -> Image:
     hues = (255 * (angles / (2*PI))).astype(np.uint8)
 
     lightnesses = magnitudes
+
+    if args.normalize == 'normalize': img_lights = 1- 2*np.abs(img_lights.astype(np.float32) - 0.5)
+    elif args.normalize == 'reverse': img_lights = 2*np.abs(img_lights.astype(np.float32) - 0.5)
 
     if MOD_BRIGHTNESS_BY_POWERS_OF_TWO:
         lb = 2 ** np.floor(np.log2(lightnesses))
