@@ -30,6 +30,7 @@ function.add_argument("-f7", "--func:test7", dest='function', action='store_cons
 function.add_argument("-f8", "--func:test8", dest='function', action='store_const', const='test8', help="Test function 8: f(z)=cosh(z) + tanh(z)")
 
 function.add_argument("-fs", "--func:specify", dest='function', action='store_const', const='SPECIFY', default="SPECIFY", help="You will be prompted to enter a function. The variable is 'z'. Select NumPy functions (sin(), log(), etc) are available with no namespace required.")
+function.add_argument("-fi", "--func:arg", nargs=1, type=str, dest='func_input', default=None, help="You will be prompted to enter a function. The variable is 'z'. Select NumPy functions (sin(), log(), etc) are available with no namespace required.")
 
 checkerboard = argParse.add_mutually_exclusive_group()
 checkerboard.add_argument("-c", "--checkerboard-width", type=float, default=0.1, help="Set the width of the checkerboard pattern. Default=%(default)s")
@@ -39,8 +40,8 @@ brightness = argParse.add_mutually_exclusive_group()
 brightness.add_argument("-b", "--brightness-log-modulus", action='store_true', dest='mod_brightness', default=True, help="Use the base-2 log of the complex number as the brightness. On by default.")
 brightness.add_argument("-s", "--simple", action='store_false', default=False, dest='mod_brightness', help="Use the modulus of the complex number, as a fraction of the maximum modulus in the viewing window, as the brightness. Off by default.")
 
-argParse.add_argument("-o", "--output", type=str, default="", help="Name of output file.")
-argParse.add_argument("-p", "--preview", action='store_true', help="Show the image in a window.")
+argParse.add_argument("-o", "--output", type=str, nargs=1, default="", help="Name of output file.")
+argParse.add_argument("-p", "--preview", action='store_true', default=True, help="Show the image in a window.")
 
 args = argParse.parse_args()
 
@@ -66,6 +67,8 @@ else:
     else: yMax = DEFAULT_WINDOW[3]
 
 def make_func(func: str):
+    if args.func_input is not None:
+        return lambda z: eval(args.func_input[0])
     match func:
         case 'test1':
             return func_to_test1
@@ -82,7 +85,7 @@ def make_func(func: str):
         case 'test7':
             return func_to_test7
         case 'test8':
-            return func_to_test8
+            return func_to_test8            
         case 'SPECIFY' | _:
             f = input("Enter function:\n>>> ")
             return lambda z: eval(f)
@@ -155,7 +158,7 @@ def create_img(func_to_test) -> Image:
 
     # new_img.save(filename)
     # print(f"Saved as {filename}")
-    new_img.show()
+    return new_img
 
 if __name__ == '__main__':
     func_to_test = make_func(args.function)
@@ -165,4 +168,5 @@ if __name__ == '__main__':
     if args.preview:
         img.show()
     if args.output != "":
-        img.save(args.output)
+        print(f"Saving as {args.output[0]}")
+        img.save(args.output[0])
